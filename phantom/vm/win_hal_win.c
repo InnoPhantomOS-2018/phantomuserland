@@ -26,12 +26,20 @@ void win_hal_init( void )
 
 void win_hal_disable_preemption(void)
 {
+#if (defined(__MINGW64__) || defined(__MINGW32__))
+#warning EnterCriticalSection hangs in mingw
+#else
     EnterCriticalSection(&default_critical);
+#endif
 }
 
 void win_hal_enable_preemption(void)
 {
+#if (defined(__MINGW64__) || defined(__MINGW32__))
+//#warning EnterCriticalSection hangs in mingw
+#else
     LeaveCriticalSection(&default_critical);
+#endif
 }
 
 

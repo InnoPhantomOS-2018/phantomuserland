@@ -145,10 +145,15 @@ void pvm_exec_load_fast_acc(struct data_area_4_thread *da)
 
     da->code.IP      = cf->IP;  /* Instruction Pointer */
 
-    da->_this_object = cf->this_object;
+    //da->_this_object = cf->this_object;
     da->_istack = (struct data_area_4_integer_stack*)(& cf->istack.data->da);
     da->_ostack = (struct data_area_4_object_stack*)(& cf->ostack.data->da);
     da->_estack = (struct data_area_4_exception_stack*)(& cf->estack.data->da);
+
+    ATOMIC_PVM_LOAD( da->_this_object, cf->this_object );
+    //ATOMIC_PVM_LOAD( da->_istack, (struct data_area_4_integer_stack*)(& cf->istack.data->da) );
+    //ATOMIC_PVM_LOAD( da->_ostack, (struct data_area_4_object_stack*)(& cf->ostack.data->da) );
+    //ATOMIC_PVM_LOAD( da->_estack, (struct data_area_4_exception_stack*)(& cf->estack.data->da) );
 }
 
 void pvm_exec_save_fast_acc(struct data_area_4_thread *da)
@@ -1192,7 +1197,7 @@ static void do_pvm_exec(pvm_object_t current_thread)
             {
                 pvm_object_t target_class = os_pop();
                 pvm_object_t o = os_pop();
-
+#warning cast unimplemented
                 // TODO cast here!
 
                 os_push( o );

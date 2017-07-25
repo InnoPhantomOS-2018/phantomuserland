@@ -32,6 +32,10 @@ typedef	unsigned long long  u_int64_t;
 
 #endif
 
+// Integer, which size is equal to size of pvm_object_t (two pointers), used in atomic pvm_object_t load/store
+typedef u_int128_t            pvm_object_int_t;
+
+
 // added bug to github instead
 //#warning fix address types to be 128 bit?
 typedef void *                vmem_ptr_t;

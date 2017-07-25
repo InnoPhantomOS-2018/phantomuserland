@@ -12,6 +12,22 @@
 #ifndef ATOMIC_H
 #define ATOMIC_H
 
+#include <phantom_types.h>
+
+//#ifdef ARCH_ia32
+// arch dependen operand size = 2x pointer size -- made it pvm_object_int_t, defined in arch-types.h
+
+// TODO used __ATOMIC_ACQ_REL for any case. relax?
+
+// Must be used on any pvm_object_t which is possibly shared and accessed not in spinlock/mutex
+#define ATOMIC_PVM_LOAD( __dest, __src ) ( *((pvm_object_int_t*)(&__dest)) = __atomic_load_n( (pvm_object_int_t*)&(__src), __ATOMIC_ACQUIRE ) )
+#define ATOMIC_PVM_STORE( __dest, __src ) (__atomic_store_n( (pvm_object_int_t*)&(__dest), *((pvm_object_int_t*)(&(__src))), __ATOMIC_RELEASE ) )
+//#endif
+
+#if (!defined(ATOMIC_PVM_LOAD)) || (!defined(ATOMIC_PVM_STORE))
+#  error need atomic ops for current arch
+#endif
+
 #define ATOMIC_ADD_AND_FETCH( __ptr, __val ) __sync_add_and_fetch( __ptr, __val )
 
 // atomic_set can be used for non-intel?
