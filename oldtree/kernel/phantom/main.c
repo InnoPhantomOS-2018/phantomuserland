@@ -358,6 +358,8 @@ int main(int argc, char **argv, char **envp)
     // Now starting object world infrastructure
     // -----------------------------------------------------------------------
 
+    // Disable access to persistent memory region. Does not work yet. :(
+    vm_lock_persistent_memory();
 
     //pressEnter("will start phantom");
     start_phantom();

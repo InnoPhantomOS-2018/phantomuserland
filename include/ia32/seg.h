@@ -122,8 +122,13 @@ struct fake_descriptor {
 void fill_gate(struct real_gate *gate, unsigned offset, unsigned short selector,
 	  unsigned char access, unsigned char word_count);
 
+void dump_descriptor( struct real_descriptor *d );
+
+
 
 #endif // ASSEMBLER
+
+
 
 #define	SZ_32		0x4			/* 32-bit segment */
 #define SZ_16		0x0			/* 16-bit segment */
@@ -271,7 +276,6 @@ void fill_gate(struct real_gate *gate, unsigned offset, unsigned short selector,
 // TODO ERR 64-bit not ready
 #define lintokv(la)	((void *)(la))
 #define kvtolin(va)	((u_int32_t)(va))
-
 
 
 #endif	/* _I386_SEG_H_ */

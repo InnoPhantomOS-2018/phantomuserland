@@ -432,11 +432,11 @@ INIT_ME( vm_lock_persistent_memory_init, 0, 0 );
 void vm_lock_persistent_memory( void )
 {
 #warning no snapshot interlock yet
-#ifdef ARCH_ia32   
+//#ifdef ARCH_ia32   
     assert( 0 == arch_ia32_modify_ds_limit( 0 ) );
-#else
-# warning no vm_lock_persistent_memory impl
-#endif
+//#else
+//# warning no vm_lock_persistent_memory impl
+//#endif
 }
 
 // release access to persistent memory address space, enable snapshots

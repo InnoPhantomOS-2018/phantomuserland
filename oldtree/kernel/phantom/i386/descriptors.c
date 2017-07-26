@@ -60,7 +60,8 @@ void set_descriptor_limit( struct real_descriptor *d, unsigned limit )
 {
     if (limit > 0xfffff)
     {
-        if( (limit+1) & 0xFFF )            printf("warning - big limit not aligned to page");
+        if( (limit+1) & 0xFFF )            
+            printf("warning - big limit not aligned to page\n");
         limit >>= 12;
         //limit = 1 + ((limit-1)/PAGE_SIZE);
         d->granularity |= SZ_G;
@@ -392,12 +393,30 @@ arch_ia32_modify_ds_limit( bool on_off)
     struct real_descriptor *g; 
     g = (struct real_descriptor *) (((char *)gdt) + (KERNEL_DS & SEL_MASK) );
 
-    set_descriptor_limit( g, on_off ? 0xFFFFFFFF : (PHANTOM_AMAP_START_VM_POOL) );
+    set_descriptor_limit( g, on_off ? 0xFFFFFFFF : (PHANTOM_AMAP_START_VM_POOL-1) );
 
-    asm volatile("movw %w0,%%ds" : : "r" (KERNEL_DS));
-    asm volatile("movw %w0,%%es" : : "r" (KERNEL_DS));
-    asm volatile("movw %w0,%%ss" : : "r" (KERNEL_DS));
+    phantom_load_gdt();
+
+    //asm volatile("movw %w0,%%ds" : : "r" (KERNEL_DS));
+    //asm volatile("movw %w0,%%es" : : "r" (KERNEL_DS));
+    //asm volatile("movw %w0,%%ss" : : "r" (KERNEL_DS));
+
+    dump_descriptor( &(gdt[KERNEL_DS >> 3]) );
 
     return 0;
 }
 
+void dump_descriptor( struct real_descriptor *d )
+{
+    unsigned long base;
+    unsigned int limit;
+
+    base = d->base_low | (d->base_med << 16) || (d->base_high << 24);
+    limit = d->limit_low | (d->limit_high << 16);
+
+    printf("descriptor base = 0x%lx limit = 0x%x access = 0x%x granularity = 0x%x",
+        base, limit,
+        d->access,
+        d->granularity
+        );
+}
