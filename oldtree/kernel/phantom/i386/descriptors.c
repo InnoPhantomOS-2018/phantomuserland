@@ -373,6 +373,7 @@ void free_ldt_selector(selector_id sel)
 //
 // Modify kernel DS limit to enable/disable access to paged/persistent memory
 //
+// Does not work in QEMU :(
 //
 
 errno_t
@@ -393,16 +394,24 @@ arch_ia32_modify_ds_limit( bool on_off)
     struct real_descriptor *g; 
     g = (struct real_descriptor *) (((char *)gdt) + (KERNEL_DS & SEL_MASK) );
 
+    // use LDT for DS to speedup reload?
     set_descriptor_limit( g, on_off ? 0xFFFFFFFF : (PHANTOM_AMAP_START_VM_POOL-1) );
+    //set_descriptor_limit( g, on_off ? 0xFFFFFFFF : 0 );
+    //set_descriptor_limit( g, 0 );
+    //g->base_high = 10;
 
     phantom_load_gdt();
 
     //asm volatile("movw %w0,%%ds" : : "r" (KERNEL_DS));
     //asm volatile("movw %w0,%%es" : : "r" (KERNEL_DS));
     //asm volatile("movw %w0,%%ss" : : "r" (KERNEL_DS));
+#if 0
+	__asm __volatile("movw %%ds,%w0" : "=rm" (sel));
+    printf("DS = 0x%02x\n", sel);
 
     dump_descriptor( &(gdt[KERNEL_DS >> 3]) );
-
+    dump_gdt();
+#endif
     return 0;
 }
 
@@ -414,9 +423,20 @@ void dump_descriptor( struct real_descriptor *d )
     base = d->base_low | (d->base_med << 16) || (d->base_high << 24);
     limit = d->limit_low | (d->limit_high << 16);
 
-    printf("descriptor base = 0x%lx limit = 0x%x access = 0x%x granularity = 0x%x",
+    printf("descriptor base = 0x%lx limit = 0x%05x access = 0x%02x granularity = 0x%01x\n",
         base, limit,
         d->access,
         d->granularity
         );
+}
+
+void dump_gdt( void )
+{
+    printf("GDT:\n");
+    int i;
+    for( i = 0; i < GDTSZ; i++ )
+    {
+        printf("%02x: ", i*8 );
+        dump_descriptor( gdt+i );
+    }
 }
