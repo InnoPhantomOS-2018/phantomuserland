@@ -4,7 +4,7 @@
  *
  * Copyright (C) 2005-2008 Dmitry Zavalishin, dz@dz.ru
  *
- * Kernel ready: yes?
+ * C code macros tpo work with Phantom virtual machine objects.
  *
  *
 **/

@@ -4,8 +4,7 @@
  *
  * Copyright (C) 2005-2009 Dmitry Zavalishin, dz@dz.ru
  *
- * Kernel ready: yes
- * Preliminary: no
+ * Data Area (binary structure) of internal (implemented in kernel) classes.
  *
  *
 **/
@@ -16,7 +15,6 @@
 
 #include <vm/object.h>
 #include <vm/exception.h>
-//#include <drv_video_screen.h>
 
 #include <video/window.h>
 

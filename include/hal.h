@@ -68,24 +68,19 @@ struct hardware_abstraction_level
 
 extern struct hardware_abstraction_level    	hal;
 
-
-// Returns nonzero in real kernel and zero in win/linux test environment.
-// Must not be used widely.
-int 					phantom_is_a_real_kernel(void);
-
-
-vmem_ptr_t 				hal_object_space_address(void);
-
-
-
 void                                    hal_init( vmem_ptr_t va, long vs );
-
 void                                    hal_init_object_vmem(void *start_of_virtual_address_space);
 
 
-void    				hal_halt(void);
-void    				hal_cli(void);
-void    				hal_sti(void);
+// Returns nonzero in real kernel and zero in win/linux test environment.
+// Must not be used widely.
+int                                     phantom_is_a_real_kernel(void);
+
+vmem_ptr_t                              hal_object_space_address(void);
+
+void                                    hal_halt(void);
+void                                    hal_cli(void);
+void                                    hal_sti(void);
 int                                     hal_is_sti(void); // returns true if ints enabled
 int                                     hal_save_cli(void); // cli and ret 1 if was enabled
 #define hal_cli_save hal_save_cli
@@ -98,7 +93,7 @@ void                                    hal_wait_for_interrupt(void);
 
 
 // void    				sleep_usec( int microseconds ) = 0;
-void    				hal_sleep_msec( int miliseconds );
+void                                    hal_sleep_msec( int miliseconds );
 
 void                                    hal_printf( char *format, ... );
 void                                    hal_log( char *format, ... );
@@ -107,68 +102,58 @@ void                                    hal_log( char *format, ... );
 // paging support
 static __inline__ unsigned int        	hal_min_pagesize(void) { return __MEM_PAGE; }
 static __inline__ unsigned int        	hal_mem_pagesize(void) { return __MEM_PAGE; }
-void *      		  		hal_paged_space(void); // where paged memory starts
-void        				hal_grow_paged_space( unsigned add_bytes );
+void *                                  hal_paged_space(void); // where paged memory starts
+void                                    hal_grow_paged_space( unsigned add_bytes );
 static __inline__ int                 	hal_address_is_aligned( void *addr ) { return ( ((addr_t)addr)%hal_min_pagesize() ) == 0; }
 
+long                                    hal_phys_mem_4_paging(void); // how much of phys mem is available for paging at all
+long                                    hal_free_phys_mem_4_paging(void); // how much of phys mem is available for paging is left unmapped now
 
+void                                    hal_page_control( physaddr_t  p, void *page_start_addr, page_mapped_t mapped, page_access_t access );
+void                                    hal_pages_control( physaddr_t  p, void *page_start_addr, int n_pages, page_mapped_t mapped, page_access_t access );
 
-long        				hal_phys_mem_4_paging(void); // how much of phys mem is available for paging at all
-long        				hal_free_phys_mem_4_paging(void); // how much of phys mem is available for paging is left unmapped now
-
-void					hal_page_control( physaddr_t  p, void *page_start_addr, page_mapped_t mapped, page_access_t access );
-void					hal_pages_control( physaddr_t  p, void *page_start_addr, int n_pages, page_mapped_t mapped, page_access_t access );
-
-void					hal_page_control_etc(
+void                                    hal_page_control_etc(
                                                              physaddr_t  p, void *page_start_addr,
                                                              page_mapped_t mapped, page_access_t access,
                                                              u_int32_t flags
                                                             );
 
-void					hal_pages_control_etc( physaddr_t  pa, void *va, int n_pages, page_mapped_t mapped, page_access_t access, u_int32_t flags );
+void                                    hal_pages_control_etc( physaddr_t  pa, void *va, int n_pages, page_mapped_t mapped, page_access_t access, u_int32_t flags );
 
 
-void * 					hal_alloc_page(void); // allocate (identically) mapped mem page in kern addr space
-void   					hal_free_page(void *page); // deallocate identically mapped page
+void *                                  hal_alloc_page(void); // allocate (identically) mapped mem page in kern addr space
+void                                    hal_free_page(void *page); // deallocate identically mapped page
 
-errno_t        				hal_alloc_phys_page(physaddr_t  *result); // alloc and not map -- returns 1 on success
-void        				hal_free_phys_page(physaddr_t  page); // alloc and not map - WILL PANIC if page is mapped!
+errno_t                                 hal_alloc_phys_page(physaddr_t  *result); // alloc and not map -- returns 1 on success
+void                                    hal_free_phys_page(physaddr_t  page); // alloc and not map - WILL PANIC if page is mapped!
 
-errno_t        				hal_alloc_phys_pages(physaddr_t  *result, int npages); // alloc and not map
-void        				hal_free_phys_pages(physaddr_t  page, int npages); // alloc and not map - WILL PANIC if page is mapped!
+errno_t                                 hal_alloc_phys_pages(physaddr_t  *result, int npages); // alloc and not map
+void                                    hal_free_phys_pages(physaddr_t  page, int npages); // alloc and not map - WILL PANIC if page is mapped!
 
-errno_t                     hal_alloc_vaddress(void **result, int n_pages); // alloc address of a page, but not memory
-void        				hal_free_vaddress(void *addr, int n_pages);
+errno_t                                 hal_alloc_vaddress(void **result, int n_pages); // alloc address of a page, but not memory
+void                                    hal_free_vaddress(void *addr, int n_pages);
 
 // Allocate physmem, address space for it, and map. Panics if out of anything.
-void 					hal_pv_alloc( physaddr_t *pa, void **va, int size_bytes );
+void                                    hal_pv_alloc( physaddr_t *pa, void **va, int size_bytes );
 // Unmap, free addr space and physmem
-void 					hal_pv_free( physaddr_t pa, void *va, int size_bytes );
+void                                    hal_pv_free( physaddr_t pa, void *va, int size_bytes );
 
 // Low ( < 1M ) mem. Identically mapped all the time!
-errno_t					hal_alloc_phys_pages_low(physaddr_t *result, int npages);
+errno_t                                 hal_alloc_phys_pages_low(physaddr_t *result, int npages);
 void                                    hal_free_phys_pages_low(physaddr_t  paddr, int npages);
 
-
-
-void					hal_copy_page_v2p( physaddr_t to, void *from );
-void					memcpy_p2v( void *to, physaddr_t from, size_t size );
-void					memcpy_v2p( physaddr_t to, void *from, size_t size );
+void                                    hal_copy_page_v2p( physaddr_t to, void *from );
+void                                    memcpy_p2v( void *to, physaddr_t from, size_t size );
+void                                    memcpy_v2p( physaddr_t to, void *from, size_t size );
 void                                    memzero_page_v2p( physaddr_t to );
-
 
 size_t                                  pahantom_total_phys_mem_kb(void);
 size_t                                  pahantom_free_phys_mem_kb(void);
 
 
-int                 			hal_addr_is_in_object_vmem( void *test );
-void                			hal_check_addr_is_in_object_vmem( void *test );
-void        				hal_register_page_fault_handler(void (*page_fault_handler)( void *address, int write ));
-
-
-
-
-
+int                                     hal_addr_is_in_object_vmem( void *test );
+void                                    hal_check_addr_is_in_object_vmem( void *test );
+void                                    hal_register_page_fault_handler(void (*page_fault_handler)( void *address, int write ));
 
 
 
