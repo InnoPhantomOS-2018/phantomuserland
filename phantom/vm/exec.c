@@ -269,7 +269,7 @@ static void pvm_exec_do_throw(struct data_area_4_thread *da)
             printf("\n");
             //getchar();
 
-            pvm_exec_panic( "unwind: nowhere to return" );
+            pvm_exec_panic( "unwind: nowhere to return", da );
         }
         free_call_frame( da->call_frame, da );
 
@@ -317,7 +317,7 @@ static void pvm_exec_sys( struct data_area_4_thread *da, unsigned int syscall_in
 
 static void init_cfda(
     struct data_area_4_thread *da, 
-    struct data_area_4_call_frame *cfda, 
+    struct data_area_4_call_frame *cfda,    // new call frame to fill
     unsigned int method_index, 
     unsigned int n_param, 
     pvm_object_t new_this,     
@@ -326,6 +326,9 @@ static void init_cfda(
 {
     cfda->ordinal = method_index;
     // which object's method we'll call - pop after args!
+
+    //printf("new_this @%p %s\n", new_this.data, pvm_is_null(new_this) ? "null" : "not null"); 
+    //printf("class_ref @%p\n", class_ref.data); 
 
 #if 1
     // TODO warn? print call info?
@@ -336,6 +339,7 @@ static void init_cfda(
     }
 #endif
     // allocate places on stack
+#if 0
     {
         unsigned int i;
         for( i = n_param; i; i-- )
@@ -343,7 +347,10 @@ static void init_cfda(
             pvm_ostack_push( pvm_object_da(cfda->ostack, object_stack), pvm_get_null_object() );
         }
     }
-
+#else
+    // push nulls to reserve stack space
+    pvm_ostack_reserve( pvm_object_da(cfda->ostack, object_stack), n_param );
+#endif
     // fill 'em in correct order
     {
         unsigned int i;
@@ -357,7 +364,10 @@ static void init_cfda(
     pvm_istack_push( pvm_object_da(cfda->istack, integer_stack), n_param);
 
     if( pvm_is_null(new_this) )
+    {
         new_this = os_pop();
+        //printf("pop new_this = "); pvm_object_dump( new_this );
+    }
 
     struct pvm_object_storage *code;
     
@@ -369,14 +379,18 @@ static void init_cfda(
         // Check that object we call method for is related to
         // method's class
 
-        int related = pvm_object_class_is_or_child( new_this, class_ref );
+        //printf("cmp class:\n");
+        int related = pvm_object_class_is_or_parent( new_this, class_ref );
         if( !related )
-            pvm_exec_panic( "static_invoke: non-related class is given" );
-
+            {
+                printf("new_this @%p: ", new_this.data); pvm_object_dump( new_this );
+                printf("class_ref @%p: ", class_ref.data); pvm_object_dump( class_ref );
+                pvm_exec_panic( "static_invoke: non-related class is given", da );
+            }
         code = pvm_exec_find_static_method( class_ref, method_index );
     }
     else
-        code = pvm_exec_find_method( new_this, method_index );
+        code = pvm_exec_find_method( new_this, method_index, da );
 
     assert(code != 0);
     pvm_exec_set_cs( cfda, code );
@@ -415,7 +429,7 @@ static void pvm_exec_call( struct data_area_4_thread *da, unsigned int method_in
     struct pvm_object new_cf = pvm_create_call_frame_object();
     struct data_area_4_call_frame* cfda = pvm_object_da( new_cf, call_frame );
 
-    //if( pvm_is_null(new_this) )                new_this = os_pop();
+    //if( pvm_is_null(new_this) )                new_this = os_pop(); // now in init_cfda
 
     //struct pvm_object_storage *code = pvm_exec_find_method( new_this, method_index );
 
@@ -611,6 +625,7 @@ static void do_pvm_exec(pvm_object_t current_thread)
                 {
                     int64_t u = ls_pop();
                     int64_t l = ls_pop();
+                    if(debug_print_instr) printf("%ld - %ld ;", (long)l, (long)u );
                     ls_push(l-u);
                 }
                 break;
@@ -629,6 +644,8 @@ static void do_pvm_exec(pvm_object_t current_thread)
                 {
                     int64_t u = ls_pop();
                     int64_t l = ls_pop();
+                    //if(debug_print_instr) printf("%ld/%ld = %ld;", (long)l, (long)u, (long)(l/u) );
+                    if(debug_print_instr) printf("%lld/%lld = %lld;", l, u, l/u );
                     ls_push(l/u);
                 }
                 break;
@@ -693,7 +710,13 @@ static void do_pvm_exec(pvm_object_t current_thread)
                 // NB! Returns int!
             case opcode_ige:	// >=
                 LISTI("l-ige");
-                { int64_t operand = ls_pop();	is_push( ls_pop() >= operand ); }
+                { 
+                    int64_t o1 = ls_pop();	
+                    int64_t o2 = ls_pop();
+                    int res = o2 >= o1;
+                    //printf("l-ige %ld >= %ld = %d ;", (long)o2, (long)o1, res );
+                    is_push( res ); 
+                }
                 break;
             case opcode_ile:	// <=
                 LISTI("l-ile");
@@ -747,8 +770,10 @@ static void do_pvm_exec(pvm_object_t current_thread)
                 LISTI("l-o2i");
                 {
                     struct pvm_object o = os_pop();
-                    if( o.data == 0 ) pvm_exec_panic("l-o2i(null)");
-                    ls_push( pvm_get_long( o ) );
+                    if( o.data == 0 ) pvm_exec_panic("l-o2i(null)", da);
+                    int64_t p = pvm_get_long( o );
+                    //printf("l-o2i %d ;", (int)p );
+                    ls_push( p );
                     ref_dec_o(o);
                 }
                 break;
@@ -779,7 +804,7 @@ static void do_pvm_exec(pvm_object_t current_thread)
             case opcode_log_and:
             case opcode_log_xor:
             case opcode_log_not:
-                pvm_exec_panic("invalid float op");
+                pvm_exec_panic("invalid float op", da);
                 break;
 
             case opcode_isum:
@@ -918,7 +943,7 @@ static void do_pvm_exec(pvm_object_t current_thread)
                 //pvm_exec_panic("unimpl float o2i");
                 {
                     struct pvm_object o = os_pop();
-                    if( o.data == 0 ) pvm_exec_panic("f-o2i(null)");
+                    if( o.data == 0 ) pvm_exec_panic("f-o2i(null)", da);
                     float d = pvm_get_float( o );
                     is_push( TO_INT( d ) );
                     ref_dec_o(o);
@@ -951,7 +976,7 @@ static void do_pvm_exec(pvm_object_t current_thread)
             case opcode_log_and:
             case opcode_log_xor:
             case opcode_log_not:
-                pvm_exec_panic("invalid double op");
+                pvm_exec_panic("invalid double op", da);
                 break;
 
 
@@ -1093,7 +1118,7 @@ static void do_pvm_exec(pvm_object_t current_thread)
                 //pvm_exec_panic("unimpl double o2i");
                 {
                     struct pvm_object o = os_pop();
-                    if( o.data == 0 ) pvm_exec_panic("d-o2i(null)");
+                    if( o.data == 0 ) pvm_exec_panic("d-o2i(null)", da);
                     double d = pvm_get_double( o );
                     ls_push( TO_LONG( d ) );
                     ref_dec_o(o);
@@ -1147,8 +1172,9 @@ static void do_pvm_exec(pvm_object_t current_thread)
                 if( os_empty() ) printf(", ostack empty");
                 else
                 {
-                    printf(",\n\tostack top = {" );
-                    pvm_object_print( os_top() );
+                    printf(",\n\tostack depth %d top = {", pvm_ostack_count(da->_ostack) );
+                    // pvm_object_print( os_top() ); // calls tostring, fails
+                    pvm_object_dump( os_top() );
                     printf("}" );
                 }
                 printf(";\n\n");
@@ -1243,6 +1269,7 @@ static void do_pvm_exec(pvm_object_t current_thread)
 
                 int32_t id = pvm_code_get_int32(&(da->code));
                 pvm_object_t co = pvm_get_ofield( cda->const_pool, id );
+                ref_inc_o(co);
                 os_push(co);
                 LISTIA("const_pool id %d", id);
             }
@@ -1253,8 +1280,21 @@ static void do_pvm_exec(pvm_object_t current_thread)
                 pvm_object_t target_class = os_pop();
                 pvm_object_t o = os_pop();
 
-                // TODO cast here!
+                if( pvm_object_class_exactly_is(o,target_class) )
+                {
+                    // nothing to do, oh, baby, stay in bed
+                    os_push( o );
+                    break;
+                }
 
+                if(1||debug_print_instr)
+                {
+                // TODO cast here!
+                    printf("!!! CAST unimpl !!!\n");
+                    printf("obj = "); pvm_object_dump(o);
+                    printf("class = "); pvm_object_dump(target_class);
+                    printf("\n!!! CAST unimpl !!!\n");
+                }
                 os_push( o );
                 LISTIA("cast %s", "unimplemented!");
             }
@@ -1449,14 +1489,18 @@ static void do_pvm_exec(pvm_object_t current_thread)
 
         case opcode_i2o:
             LISTI("i2o");
-            os_push(pvm_create_int_object(is_pop()));
+            {
+                struct pvm_object o = pvm_create_int_object(is_pop());
+                //pvm_object_dump(o);
+                os_push(o);
+            }
             break;
 
         case opcode_o2i:
             LISTI("o2i");
             {
                 struct pvm_object o = os_pop();
-                if( o.data == 0 ) pvm_exec_panic("o2i(null)");
+                if( o.data == 0 ) pvm_exec_panic("o2i(null)",da);
                 is_push( pvm_get_int( o ) );
                 ref_dec_o(o);
             }
@@ -1561,14 +1605,17 @@ static void do_pvm_exec(pvm_object_t current_thread)
                 LISTI("summon by name");
                 struct pvm_object name = pvm_code_get_string(&(da->code));
                 struct pvm_object cl = pvm_exec_lookup_class_by_name( name );
-                ref_dec_o(name);
                 // TODO: Need throw here?
-                if( pvm_is_null( cl ) ) {
-                    pvm_exec_panic("summon by name: null class");
+                if( pvm_is_null( cl ) ) 
+                {
+                    printf("summon class '"); pvm_object_print(name); printf("'\n");
+                    pvm_exec_panic("summon by name: no class found", da);
+                    ref_dec_o(name);
                     //printf("summon by name: null class");
                     //pvm_exec_do_throw(da);
                     break;
                 }
+                ref_dec_o(name);
                 os_push( cl );  // cl popped from stack - don't increment
             }
             break;
@@ -1587,8 +1634,10 @@ static void do_pvm_exec(pvm_object_t current_thread)
             LISTI("new");
             {
                 pvm_object_t cl = os_pop();
-                os_push( pvm_create_object( cl ) );
-                //ref_dec_o( cl );  // object keep class ref
+                pvm_object_t no = pvm_create_object( cl );
+                os_push( no );
+                //printf("\nop_new\nclass @%p\n", cl.data );
+                //printf("new_this @%p %s\n", no.data, pvm_is_null(no) ? "null" : "not null"); 
             }
             break;
 
@@ -1806,7 +1855,7 @@ static void do_pvm_exec(pvm_object_t current_thread)
 #endif // DEB_DYNCALL
 
                 if( find_dynamic_method( &mi ) )
-                    pvm_exec_panic("dynamic invoke failed");
+                    pvm_exec_panic("dynamic invoke failed", da);
 
                 pvm_exec_call(da,mi.method_ordinal,mi.n_param,1,mi.new_this);
             }
@@ -1819,6 +1868,9 @@ static void do_pvm_exec(pvm_object_t current_thread)
 
                 pvm_object_t class_ref = os_pop();
                 pvm_object_t new_this = os_pop();
+
+                //printf("\nstatic_invoke\nnew_this @%p %s\n", new_this.data, pvm_is_null(new_this) ? "null" : "not null"); 
+                //printf("class_ref @%p\n", class_ref.data); 
 
                 // Now there are just parameters on object stack
                 pvm_exec_static_call(da,method_ordinal,n_param,class_ref,new_this);
@@ -1863,6 +1915,18 @@ static void do_pvm_exec(pvm_object_t current_thread)
         case opcode_is_get32:        pvm_exec_iget(da, pvm_code_get_int32(&(da->code)));	break;
         case opcode_is_set32:        pvm_exec_iset(da, pvm_code_get_int32(&(da->code)));	break;
 
+        case opcode_stack_reserve:
+        {
+            int o_reserve = pvm_code_get_byte(&(da->code));
+            int i_reserve = pvm_code_get_byte(&(da->code));
+
+            //pvm_ostack_reserve( pvm_object_da(da->_ostack, object_stack), o_reserve );
+            //pvm_istack_reserve( pvm_object_da(da->_istack, integer_stack), i_reserve );
+            pvm_ostack_reserve( da->_ostack, o_reserve );
+            pvm_istack_reserve( da->_istack, i_reserve );
+        }
+            break;
+
         default:
             if( (instruction & 0xF0 ) == opcode_sys_0 )
             {
@@ -1897,7 +1961,7 @@ static void do_pvm_exec(pvm_object_t current_thread)
             }
 
             printf("Unknown op code 0x%X\n", instruction );
-            pvm_exec_panic( "thread exec: unknown opcode" ); //, instruction );
+            pvm_exec_panic( "thread exec: unknown opcode", da ); //, instruction );
 
         } // outer switch(instruction)
 
@@ -1950,7 +2014,7 @@ void pvm_exec(pvm_object_t current_thread)
 static syscall_func_t pvm_exec_find_syscall( struct pvm_object _class, unsigned int syscall_index )
 {
     if(!(_class.data->_flags & PHANTOM_OBJECT_STORAGE_FLAG_IS_CLASS))
-        pvm_exec_panic( "pvm_exec_find_syscall: not a class object" );
+        pvm_exec_panic0( "pvm_exec_find_syscall: not a class object" );
 
     struct data_area_4_class *da = 0;
 
@@ -1971,23 +2035,24 @@ static syscall_func_t pvm_exec_find_syscall( struct pvm_object _class, unsigned 
 
         // we do that only for 0 = construct, that's a hack, must be gone too )
         if( syscall_index != 0 )
-            pvm_exec_panic("find_syscall: not internal class in SYS > 0" );
+            pvm_exec_panic0("find_syscall: not internal class in SYS > 0" );
 
         if( pvm_is_null( da->class_parent ) )
-            pvm_exec_panic("find_syscall: not internal class and no internal parent" );
+            pvm_exec_panic0("find_syscall: not internal class and no internal parent" );
 
             _class = da->class_parent;
     }
 
     if( pvm_is_null( da->class_parent ) )
-            pvm_exec_panic("find_syscall: not internal class and no internal parent" );
+            pvm_exec_panic0("find_syscall: not internal class and no internal parent" );
 #endif
 
     if( da->sys_table_id >= pvm_n_internal_classes )
-        pvm_exec_panic("find_syscall: internal class index out of table" );
+        pvm_exec_panic0("find_syscall: internal class index out of table" );
     //pvm_exec_panic("find_syscall: internal class index (%d) out of table (%d)", da->sys_table_id, pvm_n_internal_classes );
 
-    if( syscall_index >= *pvm_internal_classes[da->sys_table_id].syscalls_table_size_ptr ) pvm_exec_panic("find_syscall: syscall_index no out of table size" );
+    if( syscall_index >= *pvm_internal_classes[da->sys_table_id].syscalls_table_size_ptr ) 
+        pvm_exec_panic0("find_syscall: syscall_index no out of table size" );
 
     syscall_func_t *tab = pvm_internal_classes[da->sys_table_id].syscalls_table;
     return tab[syscall_index];
@@ -2001,13 +2066,13 @@ static struct pvm_object_storage *
         )
 {
     if( iface == 0 )
-        pvm_exec_panic( "pvm_exec_get_iface_method: no interface found" );
+        pvm_exec_panic0( "pvm_exec_get_iface_method: no interface found" );
 
     if(!(iface->_flags & PHANTOM_OBJECT_STORAGE_FLAG_IS_INTERFACE))
-        pvm_exec_panic( "pvm_exec_get_iface_method: not an interface object" );
+        pvm_exec_panic0( "pvm_exec_get_iface_method: not an interface object" );
 
     if(method_index > da_po_limit(iface))
-        pvm_exec_panic( "pvm_exec_get_iface_method: method index is out of bounds" );
+        pvm_exec_panic0( "pvm_exec_get_iface_method: method index is out of bounds" );
 
     return da_po_ptr(iface->da)[method_index].data;    
 }
@@ -2023,7 +2088,7 @@ struct pvm_object_storage * pvm_exec_find_static_method( pvm_object_t class_ref,
 {
     if( class_ref.data == 0 )
     {
-        pvm_exec_panic( "pvm_exec_find_static_method: null class!" );
+        pvm_exec_panic0( "pvm_exec_find_static_method: null class!" );
     }
 
     struct pvm_object_storage *iface;
@@ -2050,14 +2115,14 @@ struct pvm_object_storage * pvm_exec_find_static_method( pvm_object_t class_ref,
 /*
  *
  * Returns code object
- *
+ * Param tda is for backtrace only
  */
 
-struct pvm_object_storage * pvm_exec_find_method( struct pvm_object o, unsigned int method_index )
+struct pvm_object_storage * pvm_exec_find_method( struct pvm_object o, unsigned int method_index, struct data_area_4_thread *tda )
 {
     if( o.data == 0 )
     {
-        pvm_exec_panic( "pvm_exec_find_method: null object!" );
+        pvm_exec_panic( "pvm_exec_find_method: null object!", tda );
     }
 
     struct pvm_object_storage *iface = o.interface;
@@ -2066,7 +2131,7 @@ struct pvm_object_storage * pvm_exec_find_method( struct pvm_object o, unsigned 
     	if( o.data->_class.data == 0 )
     	{
             //dumpo(o.data);
-            pvm_exec_panic( "pvm_exec_find_method: no interface and no class!" );
+            pvm_exec_panic( "pvm_exec_find_method: no interface and no class!", tda );
     	}
         iface = pvm_object_da( o.data->_class, class )->object_default_interface.data;
     }
@@ -2192,7 +2257,7 @@ pvm_exec_run_method(
 
     pvm_istack_push( pvm_object_da(cfda->istack, integer_stack), n_args); // pass him real number of parameters
 
-    struct pvm_object_storage *code = pvm_exec_find_method( this_object, method );
+    struct pvm_object_storage *code = pvm_exec_find_method( this_object, method, NULL );
     pvm_exec_set_cs( cfda, code );
     cfda->this_object = ref_inc_o( this_object );
 

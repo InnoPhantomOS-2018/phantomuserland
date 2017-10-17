@@ -93,7 +93,7 @@ public class IfNode extends TriNode {
 			cgen.putln("else {");					
 			_r.generate_C_code(cgen,s); // 'no' case
 			cgen.putln("}");					
-}
+		}
 	}
 	
 	

@@ -49,6 +49,10 @@ import .internal."class";
 
 import .phantom.osimpl;
 
+import .test.suite;
+
+//import .test.toPhantom.Assigns;
+
 /*
 import .test.toPhantom.PhantomPrinter;
 import .test.toPhantom.AllRun;
@@ -85,7 +89,9 @@ class boot
     void startup(var _boot_object @const ) [8]
     {
         try {
-            do_startup( _boot_object );
+//            do_startup( _boot_object );
+            boot_object = _boot_object;
+            do_startup();
         }
         catch( string e )
         {
@@ -94,7 +100,8 @@ class boot
     }
 
 
-    void do_startup(var _boot_object : .internal.object @const )
+    //void do_startup(var _boot_object : .internal.object @const )
+    void do_startup()
     {
 // uncomment to run Java unit tests
 /*
@@ -103,7 +110,7 @@ class boot
 */
         debug = 1;
 
-        boot_object = _boot_object;
+        //boot_object = _boot_object;
 
         print("Phantom System Environment Setup is running\n");
 
@@ -114,7 +121,7 @@ class boot
         loader_class = load_class(".ru.dz.phantom.system.class_loader");
 
         if( debug ) print("creating loader object\n");
-        loader = new *(loader_class)();
+        loader = new *(loader_class) : .ru.dz.phantom.system.class_loader ();
 
         if( debug ) print("initializing loader\n");
         loader.init(boot_object);
@@ -128,6 +135,8 @@ class boot
         print("Starting compiler regression tests\n");
         reg_test.run(boot_object);
         print("Finished compiler regression tests\n");
+
+        runJavaTests();
 
 //print("Wait for 1 sec...\n");
 //sleep(); //sleep(); sleep();
@@ -173,6 +182,12 @@ class boot
         windows.test();
 
         print("Finished windows tests\n");
+
+
+		// Run tests in plib/sys/src/test
+		var suite : .test.suite;
+		suite = new .test.suite();
+		suite.run();
 
 // uncomment to run Java unit tests
 /*
@@ -233,12 +248,27 @@ class boot
 
     .phantom.osimpl get_os_interface_object()
     {
-	var os : .phantom.osimpl;
+        var os : .phantom.osimpl;
         os = new .phantom.osimpl();
 
         os.init(boot_object);
 
-	return os;
+        return os;
+    }
+    void runJavaTests()
+    {
+/*
+        var rc : int;
+
+        print("Running tests of Java compiler ...\n");
+
+        var t1: .test.toPhantom.Assigns;
+        t1 = new .test.toPhantom.Assigns();
+        rc = t1.runTest();
+        if( rc != 0 ) print("Java test FAILED: Assigns\n");
+        else print("Java test PASSED: Assigns\n");
+
+*/
     }
 
     // ---------------------------------------------------------------------
