@@ -1,3 +1,3 @@
 ./zero_ph_img.sh
-./make_grub2_image.sh
+./make_system_image.sh
 ./phantom_new.sh

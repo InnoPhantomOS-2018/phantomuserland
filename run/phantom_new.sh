@@ -6,8 +6,14 @@
 Q_DEBUG="-gdb tcp::1234  "
 Q_KVM="--enable-kvm "
 
-# Uncomment this to use EFI
-# Q_EFI="-L . --bios OVMF.fd "
+case $1 in
+	efi) 
+		Q_EFI="-L . --bios OVMF.fd "
+		;;
+	*)
+		Q_EFI=""
+		;;
+esac
 
 Q_BOOT="-boot order=c,menu=on "
 
