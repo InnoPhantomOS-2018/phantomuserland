@@ -1,35 +1,18 @@
-# Welcome to Phantom OS #
+# Welcome to Phantom OS - Summer Internship 2018 Edition #
 
-Hello there.
+## Current tasks ##
 
-It is a repository for Phantom OS userland code and cross-development tools.
-de-facto it contains kernel sources as well, though.
+- [ ] Inspect and document startup process of OS: from ASM code and C entry point to GUI startup. Match those steps with corresponding code file/function.
+- [ ] Inspect problems with Disk Drivers when running OS in modern QEMU
+- [ ] Inspect problems with running OS on modern QEMU with UEFI enabled (see phantom_new.sh for commented line)
 
-## What Phantom OS is ##
-
-* [Phantom Architecture in English](https://github.com/dzavalishin/phantomuserland/wiki/PhantomArchitecture)
-* [Short article in English - TheRegister](http://www.theregister.co.uk/2009/02/03/phantom_russian_os/)
-* [Big article in Russian - Open Systems Magazine](http://www.osp.ru/os/2011/03/13008200/)
-
-Basically, most of code we (the original team) upload is very straighforward
-and, sometimes, dumb. That, to some extent, is on purpose. We want to have
-a working system first and polish it next. Besides, not all the concepts and
-design desicions are final, so it is of no use to finalize all the 
-implementation desisions now as well.
-
-Code is known to compile successfully with cygwin/linux gcc 4.3.4.
-Only ia32 target is most complete and stable, arm port is in active development
-but very instable, mips port is just started - compiles and can breath for a
-second :), amd64 port is incomplete and does not compile at all.
-
-[How to take part](https://github.com/dzavalishin/phantomuserland/wiki/HowToTakePart)
 
 ## Build ##
 
-  Set '''PHANTOM_HOME''' environment variable to the path to Phantom repository root directory,
-  "make all" there.
+  **Important!** Set '''PHANTOM_HOME''' environment variable to the path to Phantom repository root directory,
+  "make all" there. If you don't know how, don't hesitate to ask!
 
-  In Windows you will need Cygwin to do that. http://www.cygwin.com
+  In Windows you will need Cygwin to do that. 
   Select, at least: gcc4, subversion, binutils, make, gdb
   (see etc/cygwin_get.cmd)
   
@@ -37,17 +20,12 @@ second :), amd64 port is incomplete and does not compile at all.
 
 ## Run ##
 
-  Run phantom.cmd/phantom.sh in trunk/run
+  Run phantom.cmd/phantom.sh in /run
+  Better script phantom_new.sh available in same folder for Linux (and maybe Mac?)
   See doc/RUNNING for more details
 
 ## Debug ##
-
-  Run QEMU (see above) and then - gdb in trunk/oldtree/kernel/phantom
-
-  Kernel console is logged to trunk/run/serial0.log 
-
-  Kernel is able to send logging info to syslogd by UDP.
-  Currently syslogd address is hardcoded in net_misc.c.
+  Refer to wiki to learn how to debug kernel
 
 ## Directories ##
 
@@ -63,34 +41,4 @@ trunk/tools/plc              - phantom language compiler / java bytecode transla
   https://github.com/dzavalishin/phantomuserland/wiki
   doc/*
 
-## Screenshots ##
-
-  https://github.com/dzavalishin/phantomuserland/wiki/ScreenShots
-
-## Ready to take part? ##
-
-[Issues to start with](https://github.com/dzavalishin/phantomuserland/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-
-## O, my. Badges! ##
-
-[![Code coverage][COVERAGE_BADGE]][COVERAGE_LINK]
-
-[COVERAGE_LINK]:
-https://scan.coverity.com/projects/dzavalishin-phantomuserland
-
-[COVERAGE_BADGE]:
-https://scan.coverity.com/projects/8024/badge.svg
-
-
-## Communications ##
-
-Easiest way is to [Write e-mail to Dmitry Zavalishin](mailto:dz@dz.ru)
-
-Just for reference there was [Old Google forum](https://groups.google.com/forum/#!forum/phantom-os)
-
-
-<hr>
-
-Best regards, Dmitry Zavalishin,
-Phantom project... how to say... inventor? :)
-dz@dz.ru
+### We will obviously restore old README.md before merging back. ###
