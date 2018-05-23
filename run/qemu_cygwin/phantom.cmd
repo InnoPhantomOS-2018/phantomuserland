@@ -2,7 +2,7 @@
 rem http://dietpc.org/windows/qemu/
 rem http://lassauge.free.fr/qemu/
 
-CD /d %PHANTOM_HONE%
+CD /d %PHANTOM_HONE%/run
 
 SET QDIR=qemu\0.15.1
 SET QCMD=qemu.exe
