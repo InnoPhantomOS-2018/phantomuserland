@@ -36,7 +36,8 @@ case $i in
 	--enable-kvm)
 		Q_KVM="--enable-kvm"
 		;;
-	--use-external-grub)
+	--external-grub)
+		Q_BOOT="-boot order=d,menu=on "
 		Q_CD="-cdrom ${SCRIPT_DIR}/grub2.img "
 		Q_DISK_A="-drive file=fat:rw:fat,format=raw,media=disk "
 		;;
