@@ -19,15 +19,37 @@
   See also [TOOLCHAIN](https://github.com/dzavalishin/phantomuserland/blob/master/TOOLCHAIN)
 
 ## Run ##
-  **Note**: those instructions refer to new, better way to run Phantom is QEMU. I don't know if they work in Windows. In any case, just refer to older scripts, i.e. `phantom_clean` and `phantom`.
 
-  To run OS, you first need to create a phantom 'swap' disk image. Run `zero_ph_img` script to do that.
+No matter in which VM you are planning to run Phantom, you will need a special phantom image. To create one, run `zero_ph_img.{sh,cmd}` script.
 
-  Then, you want to wrap together grub bootloader and kernel files. Script `make_system_image.sh` should do everyting. **Note**: you need to have grub2 installed, so that you have `grub-mkrescue` binary available.
+### Windows ###
+  Go to `/run/qemu_cygwin` directory and run `phantom.cmd`. In case of problems, fix them.
 
-  The problem is that older grub doesn't work with newer QEMU for some reason, so you can't just use old floppy image. If you can't use grub-mkrescue for some reason, others can build external grub2 image for you, that you can use with phantom_new script - refer to commented lines.
+### Old QEMU, Ubuntu 12.04 ###
+  To actually see Phantom OS running, you currently need an old QEMU, that require Ubuntu 12.04, because it has required versions of libraries in repositories.
 
-  See doc/RUNNING for more details
+  Install qemu like that `sudo dpkg -i /etc/qemu_0.15.0-2_amd64.deb`. Then install following libraries:
+
+  - libcurl3
+
+  - libesd0
+
+  - libjpeg62
+
+  - libspice-server1
+
+  Also, follow instructions from [here](https://askubuntu.com/a/339371).
+
+  After that and building system, you should be able to run system with `/run/qemu_old/run_phantom.sh` script.
+
+### Modern QEMU on modern Linux-based OS ###
+  Install qemu and, if required, package with additional architectures. Refer to your distribution  package repositories.
+
+  The problem is that older grub doesn't work with newer QEMU for some reason, so you can't just use old floppy image.
+
+  So, you need a grub2 image. Best way to get one is to wrap together grub bootloader and kernel files. Script `make_system_image.sh` should do everyting for you. **Note**: you need to have grub2 installed, so that you have `grub-mkrescue` binary available. If you can't use grub-mkrescue for some reason, use pre-built external grub image - it's similar to one used in script for older systems, but more modern - see below on how to use it.
+
+  Then, run system with `/run/qemu_modern/run_phantom.sh` script. Launch it with `--help` flag for help on possible arguments/flags. For example, flag `--external-grub` will launch system with grub from `/run/qemu_modern/grub2.img` file,
 
 ## Debug ##
   Refer to wiki to learn how to debug kernel
