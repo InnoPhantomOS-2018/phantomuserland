@@ -92,3 +92,8 @@ tools/uftpd/bin
 *.class
 tools/big_gc/analysis/*.csv
 tools/big_gc/out.data
+
+# autocompletion and ctags files
+.clang_complete
+**/.clang_complete
+tags
